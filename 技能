@@ -1,0 +1,91 @@
+public GameObject AttackCircle_Q; //传入攻击范围
+    public GameObject AttackCircle_W;
+    public GameObject AttackCircle_E;
+    public GameObject AttackCircle_R;
+
+    public GameObject SkillCircle_Q;//传入技能指示圈
+    public GameObject SkillCircle_W;
+    public GameObject SkillCircle_E;
+    public GameObject SkillCircle_R;
+
+    public GameObject Skill_Q;//传入Q技能的释放效果
+    public GameObject Skill_W;
+    public GameObject Skill_E;
+
+    bool Q = false;//进入Q技能生效的条件
+    bool W = false;
+    bool E = false;
+    bool R = false;
+
+    float CD_Q = 5;//Q的CD计时器
+    bool CD_Q_Open = false;//进入Q计时器的条件
+
+    void Update () {
+        RaycastHit hit;//射线点
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);//获取鼠标位置 从主摄像机发出射线
+        Physics.Raycast(ray, out hit, 1000);//得到hit值（时刻检测射线的射点）
+
+        //获取Q键 且Q 的CD状态为满，否则按下Q则不生效（可在else设计提示该技能未准备完毕的提示）
+        if (Input.GetKeyDown(KeyCode.Q) && CD_Q == 5)
+        {
+            if (AttackCircle_Q.activeSelf == false)//若果Q的攻击范围圈没有打开
+            {
+                AttackCircle_Q.SetActive(true);//打开攻击范围圈
+                SkillCircle_Q.SetActive(true);//打开技能指示圈
+                Q = true;//Q的入口开放（按下Q只能激活Q的入口）
+            }
+        }
+        if (Q==true )//Q的入口打开
+        {
+             if (SkillCircle_Q.activeSelf == true)//如果技能指示圈打开
+             {
+                 //改变技能圈的位置为鼠标的位置，调整一下Y轴位置即可
+                 SkillCircle_Q.transform.position = new Vector3(hit.point.x, 0.4f, hit.point.z);
+             }
+             if (Input.GetMouseButtonDown(1) && SkillCircle_Q.activeSelf == true)//如果鼠标右键按下（取消释放）
+             {
+                AttackCircle_Q.SetActive(false);//攻击范围圈关闭
+                SkillCircle_Q.SetActive(false);//技能指示圈关闭
+             }
+             if (Input.GetMouseButtonDown(0) && SkillCircle_Q.activeSelf == true)//如果左键按下（可在此时判定伤害等操作）
+            {
+                CD_Q_Open = true;  //CD计时器开始倒数
+                AttackCircle_Q.SetActive(false);//攻击范围圈关闭
+                SkillCircle_Q.SetActive(false);//技能指示圈关闭
+                Skill_Q.transform.position = SkillCircle_Q.transform.position;//改变技能释放效果的位置
+                Skill_Q.SetActive(true);//激活释放效果
+                StartCoroutine(hideSkill_Q());//让技能通过协程存在一段时间后失活
+            }
+            if (CD_Q_Open == true)//计时器开始运行
+            {
+                CD_Q -= Time.deltaTime;//开始减实时时间
+
+                //让CD的时间在总CD的比例等于覆盖在技能栏上方的另一张图片改变其fillAmount值实现冷却中转圈的效果
+                GameObject.Find("Q_Top").GetComponent<UnityEngine.UI.Image>().fillAmount = CD_Q * 1f / 5;
+
+                //让图片下的文本组件的内容为处于变化中的CD的数字，实现倒计时的效果
+                GameObject.Find("Q_Top").GetComponent<UnityEngine.UI.Image>().transform.FindChild("Text").GetComponent<UnityEngine.UI.Text>().text = CD_Q.ToString();
+                if (CD_Q <= 0)//当CD转完（因为每一帧的不稳定性因此加上小于号以免出问题）
+                {
+                    Q = false;//关闭Q的入口
+                    CD_Q = 5;//让CD重新等于5
+                    CD_Q_Open = false;//把倒计时开关关闭
+                    GameObject.Find("Q_Top").GetComponent<UnityEngine.UI.Image>().transform.FindChild("Text").GetComponent<UnityEngine.UI.Text>().text = null;//倒计时的数字消失
+                }
+            }
+        }
+        IEnumerator hideSkill_Q()//协程实现Q的延迟存在
+        {
+            yield return new WaitForSeconds(1.5f);//等待1.5秒
+            Skill_Q.SetActive(false);//让技能释放消失
+        }
+
+        public void Open_Q()//拓展方法：实现鼠标点击该技能也能实现操作，绑定在该技能的button上
+        {
+            if (AttackCircle_Q.activeSelf == false)//若果Q的范围圈没有打开
+            {
+                AttackCircle_Q.SetActive(true);//打开
+                SkillCircle_Q.SetActive(true);//打开攻击范围圈
+                Q = true;//获得Q的入口
+            }
+       }            
